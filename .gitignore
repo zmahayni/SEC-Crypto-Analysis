@@ -1,1 +1,31 @@
 venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.vscode/
+.idea/
+
+# Logs and DB
+edgar_ledger.sqlite
+*.log
+
+# Local tmp
+~/edgar_tmp/
