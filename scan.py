@@ -53,7 +53,7 @@ FORMS = {"10-K", "10-Q", "8-K", "20-F", "40-F", "6-K"}
 # Keywords (exact, case-insensitive; allow hyphens/spaces within phrases)
 KEYWORDS = re.compile(
     r"\b("
-    r"bitcoin|blockchain|ethereum|cryptocurrency|tokenization|"
+    r"bitcoin|blockchain|ethereum|cryptocurrency|"
     r"digital[- ]asset|distributed[- ]ledger|non[- ]fungible[- ]token|crypto[- ]asset"
     r")\b",
     re.I,

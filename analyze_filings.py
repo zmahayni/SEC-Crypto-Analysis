@@ -25,7 +25,7 @@ OUTPUT_XLSX = pathlib.Path("crypto_keyword_hits.xlsx")
 # Same keywords as in scan.py
 KEYWORDS = re.compile(
     r"\b("
-    r"bitcoin|blockchain|ethereum|cryptocurrency|tokenization|"
+    r"bitcoin|blockchain|ethereum|cryptocurrency|"
     r"digital[- ]asset|distributed[- ]ledger|non[- ]fungible[- ]token|crypto[- ]asset"
     r")\b",
     re.I,
