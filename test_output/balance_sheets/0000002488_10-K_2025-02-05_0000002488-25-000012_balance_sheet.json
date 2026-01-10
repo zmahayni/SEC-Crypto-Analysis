@@ -1,0 +1,368 @@
+{
+  "filename": "0000002488_10-K_2025-02-05_0000002488-25-000012.txt",
+  "cik": "0000002488",
+  "balance_sheet": {
+    "years": [
+      "2024",
+      "2023"
+    ],
+    "line_items": [
+      {
+        "name": "ASSETS",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Current assets:",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Cash and cash equivalents",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          3787.0
+        ]
+      },
+      {
+        "name": "Short-term investments",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          1345.0,
+          null
+        ]
+      },
+      {
+        "name": "Accounts receivable, net",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          6192.0,
+          null
+        ]
+      },
+      {
+        "name": "Inventories",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          5734.0,
+          null
+        ]
+      },
+      {
+        "name": "Receivables from related parties",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          113.0,
+          null
+        ]
+      },
+      {
+        "name": "Prepaid expenses and other current assets",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          1878.0,
+          null
+        ]
+      },
+      {
+        "name": "Total current assets",
+        "level": 0,
+        "is_subtotal": true,
+        "values": [
+          19049.0,
+          null
+        ]
+      },
+      {
+        "name": "Property and equipment, net",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          1802.0,
+          null
+        ]
+      },
+      {
+        "name": "Operating lease right-of-use assets",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          623.0,
+          null
+        ]
+      },
+      {
+        "name": "Goodwill",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          24839.0,
+          null
+        ]
+      },
+      {
+        "name": "Acquisition-related intangibles",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          18930.0,
+          null
+        ]
+      },
+      {
+        "name": "Investment: equity method",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          149.0,
+          null
+        ]
+      },
+      {
+        "name": "Deferred tax assets, net",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          688.0,
+          null
+        ]
+      },
+      {
+        "name": "Other non-current assets",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          3146.0,
+          null
+        ]
+      },
+      {
+        "name": "Total assets",
+        "level": 0,
+        "is_subtotal": true,
+        "values": [
+          null,
+          69226.0
+        ]
+      },
+      {
+        "name": "LIABILITIES AND STOCKHOLDERS\u2019 EQUITY",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Current liabilities:",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Accounts payable",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          1990.0
+        ]
+      },
+      {
+        "name": "Payables to related parties",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          476.0,
+          null
+        ]
+      },
+      {
+        "name": "Accrued liabilities",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          4260.0,
+          null
+        ]
+      },
+      {
+        "name": "Current portion of long-term debt, net",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Other current liabilities",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          555.0,
+          null
+        ]
+      },
+      {
+        "name": "Total current liabilities",
+        "level": 0,
+        "is_subtotal": true,
+        "values": [
+          7281.0,
+          null
+        ]
+      },
+      {
+        "name": "Long-term debt, net of current portion",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          1721.0,
+          null
+        ]
+      },
+      {
+        "name": "Long-term operating lease liabilities",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          491.0,
+          null
+        ]
+      },
+      {
+        "name": "Deferred tax liabilities",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          349.0,
+          null
+        ]
+      },
+      {
+        "name": "Other long-term liabilities",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          1816.0,
+          null
+        ]
+      },
+      {
+        "name": "Commitments and Contingencies (see Notes 17 and 18)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Stockholders\u2019 equity:",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Capital stock:",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Common stock, par value $0.01; shares authorized:2,250; shares issued:1,680and1,663; shares outstanding:1,622and1,616",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          17.0,
+          null
+        ]
+      },
+      {
+        "name": "Additional paid-in capital",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          61362.0,
+          null
+        ]
+      },
+      {
+        "name": "Treasury stock, at cost (shares held:58and47)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          -6106.0,
+          null
+        ]
+      },
+      {
+        "name": "Retained earnings",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          2364.0,
+          null
+        ]
+      },
+      {
+        "name": "Accumulated other comprehensive loss",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          -69.0,
+          null
+        ]
+      },
+      {
+        "name": "Total stockholders\u2019 equity",
+        "level": 0,
+        "is_subtotal": true,
+        "values": [
+          57568.0,
+          null
+        ]
+      },
+      {
+        "name": "Total liabilities and stockholders\u2019 equity",
+        "level": 0,
+        "is_subtotal": true,
+        "values": [
+          null,
+          69226.0
+        ]
+      }
+    ]
+  },
+  "key_metrics": {
+    "total_current_assets": 19049.0,
+    "total_current_liabilities": 7281.0,
+    "stockholders_equity": 57568.0
+  }
+}

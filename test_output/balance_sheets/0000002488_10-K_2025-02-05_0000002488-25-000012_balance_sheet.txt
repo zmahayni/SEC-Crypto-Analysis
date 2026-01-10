@@ -1,0 +1,50 @@
+Balance Sheet
+================================================================================
+
+Line Item                                                    2024           2023
+--------------------------------------------------------------------------------
+ASSETS                                                          —              —
+Current assets:                                                 —              —
+Cash and cash equivalents                                       —         3,787 
+Short-term investments                                     1,345               —
+Accounts receivable, net                                   6,192               —
+Inventories                                                5,734               —
+Receivables from related parties                             113               —
+Prepaid expenses and other current assets                  1,878               —
+Total current assets                                      19,049               —
+--------------------------------------------------------------------------------
+Property and equipment, net                                1,802               —
+Operating lease right-of-use assets                          623               —
+Goodwill                                                  24,839               —
+Acquisition-related intangibles                           18,930               —
+Investment: equity method                                    149               —
+Deferred tax assets, net                                     688               —
+Other non-current assets                                   3,146               —
+Total assets                                                    —        69,226 
+--------------------------------------------------------------------------------
+LIABILITIES AND STOCKHOLDERS’ EQUITY                            —              —
+Current liabilities:                                            —              —
+Accounts payable                                                —         1,990 
+Payables to related parties                                  476               —
+Accrued liabilities                                        4,260               —
+Current portion of long-term debt, net                          —              —
+Other current liabilities                                    555               —
+Total current liabilities                                  7,281               —
+--------------------------------------------------------------------------------
+Long-term debt, net of current portion                     1,721               —
+Long-term operating lease liabilities                        491               —
+Deferred tax liabilities                                     349               —
+Other long-term liabilities                                1,816               —
+Commitments and Contingencies (see Notes 17 a...                —              —
+Stockholders’ equity:                                           —              —
+Capital stock:                                                  —              —
+Common stock, par value $0.01; shares authori...              17               —
+Additional paid-in capital                                61,362               —
+Treasury stock, at cost (shares held:58and47)             -6,106               —
+Retained earnings                                          2,364               —
+Accumulated other comprehensive loss                         -69               —
+Total stockholders’ equity                                57,568               —
+--------------------------------------------------------------------------------
+Total liabilities and stockholders’ equity                      —        69,226 
+--------------------------------------------------------------------------------
+================================================================================

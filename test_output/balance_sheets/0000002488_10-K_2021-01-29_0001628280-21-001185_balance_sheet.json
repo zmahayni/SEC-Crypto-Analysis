@@ -1,0 +1,74 @@
+{
+  "filename": "0000002488_10-K_2021-01-29_0001628280-21-001185.txt",
+  "cik": "0000002488",
+  "balance_sheet": {
+    "years": [
+      "Year_1",
+      "Year_2",
+      "Year_3"
+    ],
+    "line_items": [
+      {
+        "name": "(1)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "(2)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "(3)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "(4)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "(5)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "(6)",
+        "level": 0,
+        "is_subtotal": false,
+        "values": [
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  "key_metrics": {}
+}
