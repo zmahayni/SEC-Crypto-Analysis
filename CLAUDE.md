@@ -35,18 +35,58 @@ The project follows a two-stage workflow:
 ### Data Flow
 
 ```
-Input (Publicly_Trade_Companies_SEC.xlsx)
+Input (data/Publicly_Trade_Companies_SEC.xlsx)
   → scan.py downloads to ~/edgar_tmp/stage/{CIK}/
   → Files moved to OneDrive folder
-  → Analysis scripts read from OneDrive
-  → Output .xlsx files and visualizations
+  → Analysis scripts (in scripts/) read from OneDrive
+  → Output .xlsx files to data/
+```
+
+### Repository Structure
+
+```
+SEC-Crypto-Analysis/
+├── scan.py                  # Main EDGAR scanner
+├── VMscan.py                # VM variant scanner
+├── download_full_10ks.py    # Full 10-K downloader
+├── pull_from_vm.sh          # VM data transfer script
+├── requirements.txt
+├── progress.txt             # Scan progress tracking
+├── README.md / CLAUDE.md / TODO.md / CurrentNotes.md
+│
+├── scripts/                 # Analysis scripts
+│   ├── analyze_filings.py
+│   ├── generate_snippets.py
+│   ├── generate_10k_snippets_with_sections.py
+│   ├── temporal_analysis.py
+│   ├── sic2_temporal_analysis.py
+│   ├── sic_hit_percentages.py
+│   ├── sic_keyword_percentages.py
+│   ├── extract_sic2.py
+│   ├── extract_balance_sheets.py
+│   ├── parse_10k_sections.py
+│   ├── company_keyword_breakdown.py
+│   ├── generate_analysis.py
+│   ├── mastercard_case_study.py
+│   └── scan_mastercard.py
+│
+├── data/                    # Excel input/output files
+│   ├── Publicly_Trade_Companies_SEC.xlsx  (input)
+│   ├── crypto_keyword_hits.xlsx
+│   ├── crypto_snippets_150.xlsx
+│   ├── crypto_analysis.xlsx
+│   ├── ... (other Excel/PNG outputs)
+│   └── test_output/         # Parsed JSON test files
+│
+└── venv/                    # Python virtual environment
 ```
 
 ### Key Directories
 
 - **Staging:** `~/edgar_tmp/stage/` - Local temporary storage during scanning
 - **OneDrive:** `~/Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k/` - Final storage location
-- **Progress Tracking:** `~/edgar_tmp/progress.txt` - Records completed CIKs for resuming
+- **Progress Tracking:** `progress.txt` (in repo root) - Records completed CIKs for resuming
+- **Data:** `data/` - All Excel input/output files
 
 ### CIK Folder Structure
 
@@ -81,29 +121,30 @@ python -c "import shutil, pathlib; shutil.rmtree(pathlib.Path.home() / 'edgar_tm
 
 ### Analysis Scripts
 
+All analysis scripts are in the `scripts/` folder. Run from repo root:
+
 **Generate keyword hit analysis:**
 ```bash
-python analyze_filings.py  # Creates crypto_keyword_hits.xlsx
+python scripts/analyze_filings.py  # Creates data/crypto_keyword_hits.xlsx
 ```
 
 **Temporal analysis:**
 ```bash
-python temporal_analysis.py        # Overall trends
-python sic2_temporal_analysis.py   # By industry (SIC code)
+python scripts/temporal_analysis.py        # Overall trends
+python scripts/sic2_temporal_analysis.py   # By industry (SIC code)
 ```
 
 **Generate snippets for qualitative coding:**
 ```bash
-python generate_snippets.py              # Sample 150 companies
-python clean_snippets.py                 # Clean HTML from snippets
-python mastercard_case_study.py          # Single company deep dive
+python scripts/generate_snippets.py              # Sample 150 companies
+python scripts/mastercard_case_study.py          # Single company deep dive
 ```
 
 **Statistical analysis:**
 ```bash
-python company_keyword_breakdown.py      # Keyword frequency per company
-python sic_hit_percentages.py           # Hit rates by SIC code
-python sic_keyword_percentages.py       # Keyword distribution by SIC
+python scripts/company_keyword_breakdown.py      # Keyword frequency per company
+python scripts/sic_hit_percentages.py           # Hit rates by SIC code
+python scripts/sic_keyword_percentages.py       # Keyword distribution by SIC
 ```
 
 ## scan.py Configuration
@@ -151,11 +192,17 @@ Default lookback: 5 years (configurable via `YEARS_BACK` in `scan.py`)
 ### Common Data Loading Pattern
 
 Most analysis scripts follow this pattern:
-1. Load company names from `Publicly_Trade_Companies_SEC.xlsx`
+1. Load company names from `data/Publicly_Trade_Companies_SEC.xlsx`
 2. Read filings from OneDrive folder by walking CIK directories
 3. Parse filename format: `{CIK}_{FORM}_{DATE}_{ACCESSION}.ext`
 4. Extract keywords using same regex as `scan.py`
-5. Output to Excel with openpyxl engine
+5. Output to Excel in `data/` folder with openpyxl engine
+
+Scripts use `SCRIPT_DIR` and `DATA_DIR` constants for portable paths:
+```python
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+```
 
 ### File Naming Convention
 
@@ -195,7 +242,7 @@ Edit these constants in `scan.py`:
 
 ### Progress Persistence
 
-- Each completed CIK is appended to `~/edgar_tmp/progress.txt`
+- Each completed CIK is appended to `progress.txt` (in repo root)
 - `COMPLETE` marker file in each CIK folder indicates finished processing
 - `.STAGING` file indicates in-progress (removed when complete)
 
