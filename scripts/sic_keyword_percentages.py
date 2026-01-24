@@ -12,8 +12,11 @@ import pandas as pd
 # CONFIG
 # =============================================================================
 
-INPUT_XLSX = pathlib.Path("crypto_keyword_hits.xlsx")
-OUTPUT_XLSX = pathlib.Path("sic_keyword_percentages.xlsx")
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+
+INPUT_XLSX = DATA_DIR / "crypto_keyword_hits.xlsx"
+OUTPUT_XLSX = DATA_DIR / "sic_keyword_percentages.xlsx"
 
 
 # =============================================================================

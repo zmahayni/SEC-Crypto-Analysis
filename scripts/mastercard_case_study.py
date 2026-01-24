@@ -14,6 +14,9 @@ from typing import Optional, List
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+
 HOME = pathlib.Path.home()
 CLOUD_FOLDER = (
     HOME
@@ -22,7 +25,7 @@ CLOUD_FOLDER = (
 
 MASTERCARD_CIK = "0001141391"
 COMPANY_NAME = "Mastercard"
-OUTPUT_FILE = pathlib.Path("mastercard_crypto_snippets.xlsx")
+OUTPUT_FILE = DATA_DIR / "mastercard_crypto_snippets.xlsx"
 
 # Same keywords as in scan.py
 KEYWORDS = re.compile(

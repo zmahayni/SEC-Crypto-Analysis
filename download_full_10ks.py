@@ -19,7 +19,7 @@ import sys
 
 HOME = pathlib.Path.home()
 ONEDRIVE_FOLDER = (
-    HOME / "Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
+    HOME / "Library/CloudStorage/OneDrive-SharedLibraries-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
 )
 FULL_10K_FOLDER = ONEDRIVE_FOLDER / "full_10ks"
 PROGRESS_FILE = HOME / "edgar_tmp" / "full_10k_progress.txt"
@@ -37,7 +37,7 @@ UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/124.0 Safari/537.36 "
-    "Uni Tulsa research - zade@example.com"
+    "Uni Tulsa research - zam3395@utulsa.edu"
 )
 
 # =============================================================================
@@ -267,8 +267,12 @@ def find_all_10k_files():
             if filename in ["SIC.txt", "COMPLETE", ".STAGING"]:
                 continue
 
-            # Only process 10-K files
+            # Only process 10-K .txt files (these have proper accession numbers)
+            # .htm files have document names, not accession numbers
             if "_10-K_" not in filename:
+                continue
+
+            if not filename.endswith('.txt'):
                 continue
 
             files_to_download.append((cik, filename, filepath))

@@ -29,3 +29,7 @@ edgar_ledger.sqlite
 
 # Local tmp
 ~/edgar_tmp/
+
+CLAUDE.md
+.claude/
+TODO.md

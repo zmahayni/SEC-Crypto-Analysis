@@ -1,22 +1,15 @@
 # =============================================================================
-# SEC-Crypto-Analysis - High-Performance Version
+# SEC-Crypto-Analysis - VM Version (local storage + Mac pull)
 # =============================================================================
-# Optimizations:
-# 1. Improved HTTP connection pooling and reuse (pool_connections=64, pool_maxsize=256)
-# 2. Smart retry handling with Retry-After header support
-# 3. Global document executor for better resource utilization
-# 4. High concurrency settings (CIK_CONCURRENCY=6, DOC_CONCURRENCY=15)
-# 5. Early termination in stream scanning when keywords are found
-# 6. HEAD requests to check file size before downloading
-# 7. Increased chunk sizes for better throughput (256KB)
-# 8. PyMuPDF for faster PDF processing with page limiting
-# 9. In-memory PDF processing instead of temp files
-# 10. Higher RPS limit (9.5) while respecting SEC guidelines
+# Optimized for low-resource VMs (2GB RAM, 10GB storage):
+# 1. Saves files locally - Mac pulls via rsync when online
+# 2. Reduced concurrency for limited RAM
+# 3. Pauses scanning when storage threshold exceeded
+# 4. Resumes automatically when storage freed (after Mac pulls)
 # =============================================================================
 
 import argparse
 import re
-import shutil
 import time
 import pathlib
 import datetime as dt
@@ -36,16 +29,17 @@ import sys
 
 HOME = pathlib.Path.home()
 
-INPUT_XLSX = pathlib.Path(
-    "Publicly_Trade_Companies_SEC.xlsx"
-)  # Excel with columns: cik, name
-BASE_FOLDER = (
-    HOME
-    / "Library/CloudStorage/OneDrive-SharedLibraries-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
-)
+INPUT_XLSX = pathlib.Path("Publicly_Trade_Companies_SEC.xlsx")
+
+# Local staging directory - Mac will pull from here
 TMP_ROOT = HOME / "edgar_tmp"
 STAGE_DIR = TMP_ROOT / "stage"
 PROGRESS_FILE = TMP_ROOT / "progress.txt"
+
+# Storage limits (in MB) - pause scanning when exceeded
+MAX_STORAGE_MB = 7000  # 7GB - leave headroom on 10GB disk
+RESUME_STORAGE_MB = 5000  # Resume when below 5GB
+STORAGE_CHECK_INTERVAL = 60  # Check storage every 60 seconds when paused
 
 YEARS_BACK = 5
 FORMS = {"10-K", "10-Q", "8-K", "20-F", "40-F", "6-K"}
@@ -59,21 +53,19 @@ KEYWORDS = re.compile(
     re.I,
 )
 
-# Throughput
-MAX_RPS = 9.8  # global cap - pushing close to SEC limit
-CIK_CONCURRENCY = 10  # parallel CIKs (increased from 6)
-DOC_CONCURRENCY = 20  # parallel exhibits per filing (increased from 15)
+# Throughput - REDUCED for 2GB RAM VM
+MAX_RPS = 9.5  # global cap - respecting SEC limit
+CIK_CONCURRENCY = 3  # parallel CIKs (reduced from 10)
+DOC_CONCURRENCY = 8  # parallel exhibits per filing (reduced from 20)
 MAX_SAVE_MB_PER_FILE = 20  # don't save > 20MB files
 
-# Include PDFs? (needs pdfminer.six; will skip gracefully if not installed)
-# Disabled for speed - PDFs are slow to process
+# Include PDFs? (disabled for speed)
 INCLUDE_PDF_EXHIBITS = False
 
 # HTTP headers
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/124.0 Safari/537.36 "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36 "
     "Uni Tulsa research - zam3395@utulsa.edu"
 )
 
@@ -85,7 +77,7 @@ TXT_PATH = "https://www.sec.gov/Archives/edgar/data/{cik_nolead}/{acc_dash}.txt"
 
 # Backoff for 429s/network hiccups
 MAX_RETRIES = 3
-BACKOFF = [15, 30, 60]  # seconds - reduced wait times
+BACKOFF = [15, 30, 60]
 
 # =============================================================================
 # Internal state / helpers
@@ -93,10 +85,12 @@ BACKOFF = [15, 30, 60]  # seconds - reduced wait times
 
 _TLS = threading.local()
 STOP_EVENT = threading.Event()
-# Global document executor for better resource utilization
 DOC_EXECUTOR = ThreadPoolExecutor(max_workers=DOC_CONCURRENCY)
-# Script start time for runtime tracking
 SCRIPT_START_TIME = time.time()
+
+# Storage tracking
+_STORAGE_PAUSED = False
+_STORAGE_LOCK = threading.Lock()
 
 
 def _get_session():
@@ -105,7 +99,6 @@ def _get_session():
         s = requests.Session()
         s.headers.update({"User-Agent": UA, "Accept": "application/json"})
 
-        # Configure connection pooling and retries
         retry_strategy = Retry(
             total=5,
             backoff_factor=0.5,
@@ -115,8 +108,8 @@ def _get_session():
         )
         adapter = HTTPAdapter(
             max_retries=retry_strategy,
-            pool_connections=128,
-            pool_maxsize=512,
+            pool_connections=32,  # Reduced for low RAM
+            pool_maxsize=64,  # Reduced for low RAM
             pool_block=True,
         )
         s.mount("http://", adapter)
@@ -150,7 +143,6 @@ _REQ_COUNT = 0
 
 
 def _record_request(window_sec: float = 10.0):
-    """Lightweight telemetry (not printed unless error)."""
     global _REQ_COUNT
     now = time.perf_counter()
     with REQ_LOCK:
@@ -162,7 +154,6 @@ def _record_request(window_sec: float = 10.0):
 
 
 def format_runtime():
-    """Format runtime as HH:MM:SS"""
     runtime_seconds = int(time.time() - SCRIPT_START_TIME)
     hours, remainder = divmod(runtime_seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
@@ -170,7 +161,6 @@ def format_runtime():
 
 
 def info(msg: str):
-    # minimal console output for: new CIK start, saves, errors
     print(f"[{format_runtime()}] {msg}", flush=True)
 
 
@@ -181,6 +171,18 @@ def error(msg: str):
 def ensure_dirs():
     STAGE_DIR.mkdir(parents=True, exist_ok=True)
     TMP_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+def get_staging_size_mb() -> float:
+    """Calculate total size of staging directory in MB."""
+    total = 0
+    try:
+        for f in STAGE_DIR.rglob("*"):
+            if f.is_file():
+                total += f.stat().st_size
+    except Exception:
+        pass
+    return total / (1024 * 1024)
 
 
 def get_with_backoff(url: str, label: str, stream: bool = False):
@@ -201,14 +203,11 @@ def get_with_backoff(url: str, label: str, stream: bool = False):
         if r.status_code != 429:
             return r
 
-        # Handle 429 with Retry-After if available
         retry_after = r.headers.get("Retry-After")
         if retry_after:
             try:
-                # Retry-After can be seconds or HTTP date
                 wait = float(retry_after)
             except ValueError:
-                # If it's an HTTP date, default to our backoff
                 wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
         else:
             wait = BACKOFF[min(attempt, len(BACKOFF) - 1)]
@@ -226,7 +225,7 @@ def save_text_raw(text: str, path: pathlib.Path):
 def size_under_limit(resp: requests.Response) -> bool:
     try:
         cl = resp.headers.get("Content-Length")
-        if cl is None:  # unknown size
+        if cl is None:
             return True
         mb = int(cl) / (1024 * 1024)
         return mb <= MAX_SAVE_MB_PER_FILE
@@ -234,26 +233,21 @@ def size_under_limit(resp: requests.Response) -> bool:
         return True
 
 
-# PDF text extraction (lazy import)
 def pdf_to_text_bytes(content: bytes) -> str:
     try:
-        # Try to use PyMuPDF (fitz) if available - much faster than pdfminer
         try:
             import fitz
 
             with fitz.open(stream=content, filetype="pdf") as doc:
-                # Only extract first 10 pages for speed
                 max_pages = min(10, doc.page_count)
                 text = ""
                 for i in range(max_pages):
                     text += doc[i].get_text()
                 return text
         except ImportError:
-            # Fall back to pdfminer if PyMuPDF not available
             from pdfminer.high_level import extract_text
             import io
 
-            # Use BytesIO instead of temp file
             with io.BytesIO(content) as pdf_stream:
                 text = extract_text(pdf_stream) or ""
                 return text
@@ -262,7 +256,6 @@ def pdf_to_text_bytes(content: bytes) -> str:
         return ""
 
 
-# Stream-scan text-like resources
 def stream_scan_for_keywords(url: str):
     r = get_with_backoff(url, url, stream=True)
     if not r or r.status_code != 200:
@@ -273,11 +266,9 @@ def stream_scan_for_keywords(url: str):
     limit = 1_000_000
     found_keyword = False
     try:
-        # Increased chunk size for better throughput
         for chunk in r.iter_content(chunk_size=256_000, decode_unicode=True):
             if not chunk:
                 continue
-            # Check for keywords first before appending to buffer
             if not found_keyword and KEYWORDS.search(chunk):
                 found_keyword = True
 
@@ -289,8 +280,7 @@ def stream_scan_for_keywords(url: str):
                 text_buf = [s]
                 acc_len = len(s)
 
-            # Super early return if we've found a keyword
-            if found_keyword and acc_len > 25_000:  # Minimal context for maximum speed
+            if found_keyword and acc_len > 25_000:
                 return True, "".join(text_buf)
 
         return found_keyword, "".join(text_buf)
@@ -301,9 +291,7 @@ def stream_scan_for_keywords(url: str):
             pass
 
 
-# Fetch whole file bytes (for PDFs)
 def fetch_bytes(url: str) -> bytes:
-    # First check size with HEAD request
     head = get_with_backoff(url, f"HEAD {url}", stream=False)
     if head and head.status_code == 200 and not size_under_limit(head):
         info(f"skip large download (> {MAX_SAVE_MB_PER_FILE} MB) based on HEAD")
@@ -315,7 +303,6 @@ def fetch_bytes(url: str) -> bytes:
     try:
         chunks = []
         total = 0
-        # Increased chunk size for better throughput
         for chunk in r.iter_content(chunk_size=256_000):
             if not chunk:
                 continue
@@ -333,13 +320,8 @@ def fetch_bytes(url: str) -> bytes:
 
 
 def choose_docs(manifest, primary=None):
-    """
-    Return ALL exhibits, primary first, then the rest.
-    Includes .htm/.html/.txt and, optionally, .pdf.
-    """
     primary = (primary or "").lower()
     m = [d for d in manifest if "name" in d]
-    # primary first
     out = []
     for d in m:
         nm = d["name"].lower()
@@ -349,7 +331,6 @@ def choose_docs(manifest, primary=None):
         ):
             out.append(d)
             break
-    # then all others
     for d in m:
         nm = d["name"].lower()
         if d in out:
@@ -366,9 +347,7 @@ def choose_docs(manifest, primary=None):
 def process_doc(cik10, form, filed, cik_int, folder, d, cik_stage) -> int:
     name_doc = d["name"]
     url = DOC_PATH.format(cik_nolead=cik_int, folder=folder, name=name_doc)
-    # handle PDF separately
     if INCLUDE_PDF_EXHIBITS and name_doc.lower().endswith(".pdf"):
-        # HEAD/size check
         head = get_with_backoff(url, f"HEAD {name_doc}")
         if head and head.status_code == 200 and not size_under_limit(head):
             return 0
@@ -382,11 +361,9 @@ def process_doc(cik10, form, filed, cik_int, folder, d, cik_stage) -> int:
             info(f"saved {out.name}")
             return 1
         return 0
-    # text-like
     hit, content = stream_scan_for_keywords(url)
     if not hit:
         return 0
-    # Optional HEAD to enforce save size cap
     head = get_with_backoff(url, f"HEAD {name_doc}")
     if head and head.status_code == 200 and not size_under_limit(head):
         info(f"skip saving large file (> {MAX_SAVE_MB_PER_FILE} MB): {name_doc}")
@@ -397,38 +374,61 @@ def process_doc(cik10, form, filed, cik_int, folder, d, cik_stage) -> int:
     return 1
 
 
-def flush_to_onedrive(dest: pathlib.Path):
-    ensure_dirs()
-    dest.mkdir(parents=True, exist_ok=True)
-    moved = 0
-    for cik_dir in STAGE_DIR.iterdir():
-        if not cik_dir.is_dir():
-            continue
-        if not (cik_dir / "COMPLETE").exists():
-            continue  # skip in-progress
-        target = dest / cik_dir.name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.mkdir(exist_ok=True, parents=True)
-        for p in cik_dir.iterdir():
-            if p.name in {"COMPLETE", ".STAGING"}:
-                continue
-            shutil.move(str(p), str(target / p.name))
-        try:
-            cik_dir.rmdir()
-        except OSError:
-            pass
-        moved += 1
-    info(f"Flushed {moved} CIK folder(s) to OneDrive")
+def get_completed_count():
+    """Count completed CIK folders waiting for transfer."""
+    count = 0
+    try:
+        for cik_dir in STAGE_DIR.iterdir():
+            if cik_dir.is_dir() and (cik_dir / "COMPLETE").exists():
+                count += 1
+    except Exception:
+        pass
+    return count
+
+
+def wait_for_storage():
+    """Block until storage drops below resume threshold."""
+    global _STORAGE_PAUSED
+
+    with _STORAGE_LOCK:
+        if _STORAGE_PAUSED:
+            return  # Already waiting in another thread
+
+    size_mb = get_staging_size_mb()
+    if size_mb < MAX_STORAGE_MB:
+        return  # Storage is fine
+
+    with _STORAGE_LOCK:
+        _STORAGE_PAUSED = True
+
+    completed = get_completed_count()
+    info(f"STORAGE LIMIT: {size_mb:.0f}MB used (max {MAX_STORAGE_MB}MB)")
+    info(f"Pausing scan - {completed} completed CIK folders waiting for Mac to pull")
+    info(f"Run pull script on Mac, then scanning will resume automatically")
+
+    while not STOP_EVENT.is_set():
+        time.sleep(STORAGE_CHECK_INTERVAL)
+        size_mb = get_staging_size_mb()
+        completed = get_completed_count()
+
+        if size_mb < RESUME_STORAGE_MB:
+            info(f"Storage freed: {size_mb:.0f}MB - resuming scan")
+            with _STORAGE_LOCK:
+                _STORAGE_PAUSED = False
+            return
+
+        # Periodic status update
+        info(f"Still waiting: {size_mb:.0f}MB used, {completed} folders pending transfer")
 
 
 def on_sigint(sig, frame):
     total_runtime = format_runtime()
-    info(
-        f"Ctrl-C detected after {total_runtime} runtime → flushing completed CIKs to OneDrive before exit…"
-    )
+    completed = get_completed_count()
+    size_mb = get_staging_size_mb()
+    info(f"Ctrl-C detected after {total_runtime}")
+    info(f"Local storage: {size_mb:.0f}MB, {completed} completed CIK folders")
+    info(f"Run pull script on Mac to transfer files before they're lost!")
     STOP_EVENT.set()
-    flush_to_onedrive(BASE_FOLDER)
-    info(f"Total runtime: {total_runtime} - Exiting now.")
     sys.exit(130)
 
 
@@ -440,7 +440,6 @@ def on_sigint(sig, frame):
 def process_filing(cik10, form, filed, acc_dash, cik_int, cik_stage, primary_name):
     folder = acc_dash.replace("-", "")
 
-    # 1) Try master .txt first
     txt_url = TXT_PATH.format(cik_nolead=cik_int, acc_dash=acc_dash)
     hit_txt, content_txt = stream_scan_for_keywords(txt_url)
     if hit_txt:
@@ -451,7 +450,6 @@ def process_filing(cik10, form, filed, acc_dash, cik_int, cik_stage, primary_nam
             info(f"saved {out.name}")
         return
 
-    # 2) Fallback: index.json → primary + ALL exhibits
     idx_url = IDX_JSON.format(cik_nolead=cik_int, folder=folder)
     r_idx = get_with_backoff(idx_url, f"{acc_dash} index.json")
     if not r_idx or r_idx.status_code != 200:
@@ -466,7 +464,6 @@ def process_filing(cik10, form, filed, acc_dash, cik_int, cik_stage, primary_nam
     if not docs:
         return
 
-    # primary first, then exhibits (with concurrency)
     hits = 0
     if DOC_CONCURRENCY <= 1:
         for d in docs:
@@ -474,10 +471,8 @@ def process_filing(cik10, form, filed, acc_dash, cik_int, cik_stage, primary_nam
                 break
             hits += process_doc(cik10, form, filed, cik_int, folder, d, cik_stage)
     else:
-        # run primary first synchronously to allow early exit on hit
         hits += process_doc(cik10, form, filed, cik_int, folder, docs[0], cik_stage)
         if hits == 0 and len(docs) > 1:
-            # Use global executor instead of creating a new one each time
             futures = [
                 DOC_EXECUTOR.submit(
                     process_doc, cik10, form, filed, cik_int, folder, d, cik_stage
@@ -494,27 +489,26 @@ def process_filing(cik10, form, filed, acc_dash, cik_int, cik_stage, primary_nam
 
 
 def process_cik(cik10: str, name: str, cik_index: int = 0, total_ciks: int = 0):
+    global _COMPLETED_SINCE_FLUSH
+
     if STOP_EVENT.is_set():
         return
-    # CIK staging
+
     cik_stage = STAGE_DIR / cik10
     cik_stage.mkdir(parents=True, exist_ok=True)
     (cik_stage / ".STAGING").write_text("in-progress", encoding="utf-8")
 
-    # Show progress as count/total
     if total_ciks > 0:
         info(f"{cik_index}/{total_ciks}    CIK {cik10} – {name}")
     else:
         info(f"Start CIK {cik10} – {name}")
 
-    # submissions JSON
     r_meta = get_with_backoff(SUB_JSON.format(cik=cik10), "submissions JSON")
     if not r_meta or r_meta.status_code != 200:
         error("could not fetch submissions JSON")
         return
     meta = r_meta.json()
 
-    # SIC file for every company
     sic = str(meta.get("sic") or meta.get("companyInfo", {}).get("sic") or "")
     try:
         (cik_stage / "SIC.txt").write_text(sic, encoding="utf-8")
@@ -559,6 +553,7 @@ def process_cik(cik10: str, name: str, cik_index: int = 0, total_ciks: int = 0):
     if not STOP_EVENT.is_set():
         (cik_stage / "COMPLETE").write_text("done", encoding="utf-8")
         (cik_stage / ".STAGING").unlink(missing_ok=True)
+
         # Record progress
         try:
             PROGRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -566,6 +561,9 @@ def process_cik(cik10: str, name: str, cik_index: int = 0, total_ciks: int = 0):
                 f.write(f"{cik10}\n")
         except Exception as e:
             error(f"could not write progress for {cik10}: {e}")
+
+        # Check storage and pause if needed
+        wait_for_storage()
 
 
 def read_ciks():
@@ -600,7 +598,6 @@ def run(start_from_cik: str | None):
     ciks = read_ciks()
     total_ciks = len(ciks)
 
-    # If user wants to start from a specific CIK, skip until we find it
     if start_from_cik:
         start_from_cik = str(start_from_cik).zfill(10)
         try:
@@ -614,12 +611,10 @@ def run(start_from_cik: str | None):
         for i, (cik10, name) in enumerate(ciks):
             if STOP_EVENT.is_set():
                 break
-            # Calculate the actual index in the full list
             actual_idx = total_ciks - len(ciks) + i + 1
             process_cik(cik10, name, actual_idx, total_ciks)
     else:
         with ThreadPoolExecutor(max_workers=CIK_CONCURRENCY) as ex:
-            # Create a list to track the index of each CIK
             cik_indices = [
                 (i + total_ciks - len(ciks) + 1, cik10, name)
                 for i, (cik10, name) in enumerate(ciks)
@@ -638,13 +633,13 @@ def run(start_from_cik: str | None):
 
 
 # =============================================================================
-# CLI (only one optional arg)
+# CLI
 # =============================================================================
 
 
 def parse_args():
     p = argparse.ArgumentParser(
-        description="EDGAR crypto scan (simple config, resumable via --start-from-cik or --resume-from-last)"
+        description="EDGAR crypto scan - VM version with rclone support"
     )
     p.add_argument(
         "--start-from-cik",
@@ -655,46 +650,83 @@ def parse_args():
     p.add_argument(
         "--resume-from-last",
         action="store_true",
-        help="Resume from the last completed CIK recorded in progress.txt (ignored if --start-from-cik is provided)",
+        help="Resume from the last completed CIK recorded in progress.txt",
+    )
+    p.add_argument(
+        "--status",
+        action="store_true",
+        help="Show storage status and exit",
     )
     return p.parse_args()
+
+
+def show_status():
+    """Show current storage and progress status."""
+    ensure_dirs()
+    size_mb = get_staging_size_mb()
+    completed = get_completed_count()
+
+    # Count in-progress
+    in_progress = 0
+    try:
+        for cik_dir in STAGE_DIR.iterdir():
+            if cik_dir.is_dir() and (cik_dir / ".STAGING").exists():
+                in_progress += 1
+    except Exception:
+        pass
+
+    # Get progress info
+    last_cik = get_last_processed_cik()
+
+    print(f"Storage used: {size_mb:.0f}MB / {MAX_STORAGE_MB}MB limit")
+    print(f"Completed CIK folders (awaiting transfer): {completed}")
+    print(f"In-progress CIK folders: {in_progress}")
+    print(f"Last completed CIK: {last_cik or 'None'}")
+    print(f"Staging directory: {STAGE_DIR}")
+
+    if size_mb > RESUME_STORAGE_MB:
+        print(f"\nWARNING: Storage above resume threshold ({RESUME_STORAGE_MB}MB)")
+        print("Run pull script on Mac to free space")
 
 
 def main():
     signal.signal(signal.SIGINT, on_sigint)
     args = parse_args()
-    info("Starting SEC-Crypto-Analysis script - Runtime: 00:00:00")
+
+    if args.status:
+        show_status()
+        sys.exit(0)
+
+    info("Starting SEC-Crypto-Analysis (VM version) - Runtime: 00:00:00")
+    info(f"Storage limit: {MAX_STORAGE_MB}MB, resume at: {RESUME_STORAGE_MB}MB")
+    info(f"Staging directory: {STAGE_DIR}")
+
     try:
         start_from = args.start_from_cik
         if not start_from and args.resume_from_last:
             lf = get_last_processed_cik()
             if lf:
-                # Start from the CIK AFTER the last completed one
                 ciks = [c for c, _ in read_ciks()]
                 try:
                     idx = ciks.index(lf)
                     if idx + 1 < len(ciks):
                         start_from = ciks[idx + 1]
-                        info(
-                            f"Resuming from after last completed CIK: {lf} → starting at {start_from}"
-                        )
+                        info(f"Resuming after {lf} → starting at {start_from}")
                     else:
-                        info(
-                            "Progress indicates all CIKs complete; starting from beginning"
-                        )
+                        info("All CIKs complete; starting from beginning")
                 except ValueError:
-                    info(
-                        "Last completed CIK not found in input; starting from beginning"
-                    )
+                    info("Last CIK not found in input; starting from beginning")
             else:
-                info("No progress file found or empty; starting from the beginning")
+                info("No progress file; starting from the beginning")
+
         run(start_from)
-        # final flush on normal completion too
-        flush_to_onedrive(BASE_FOLDER)
+
         total_runtime = format_runtime()
-        info(f"Script completed successfully - Total runtime: {total_runtime}")
+        completed = get_completed_count()
+        size_mb = get_staging_size_mb()
+        info(f"Script completed - Total runtime: {total_runtime}")
+        info(f"Final status: {size_mb:.0f}MB used, {completed} folders awaiting transfer")
     finally:
-        # Clean up global executor
         DOC_EXECUTOR.shutdown(wait=False)
 
 

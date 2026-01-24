@@ -12,15 +12,19 @@ import matplotlib.pyplot as plt
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+ROOT_DIR = SCRIPT_DIR.parent
+
 HOME = pathlib.Path.home()
 CLOUD_FOLDER = (
     HOME
     / "Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
 )
-PROGRESS_FILE = pathlib.Path("progress.txt")
-KEYWORD_HITS_FILE = pathlib.Path("crypto_keyword_hits.xlsx")
-OUTPUT_TABLE = pathlib.Path("sic2_crypto_mentions_by_year.xlsx")
-OUTPUT_CHART = pathlib.Path("sic2_crypto_timeline.png")
+PROGRESS_FILE = ROOT_DIR / "progress.txt"
+KEYWORD_HITS_FILE = DATA_DIR / "crypto_keyword_hits.xlsx"
+OUTPUT_TABLE = DATA_DIR / "sic2_crypto_mentions_by_year.xlsx"
+OUTPUT_CHART = DATA_DIR / "sic2_crypto_timeline.png"
 
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025]
 

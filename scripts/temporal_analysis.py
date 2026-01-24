@@ -12,11 +12,15 @@ import matplotlib.pyplot as plt
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+ROOT_DIR = SCRIPT_DIR.parent
+
 HOME = pathlib.Path.home()
-PROGRESS_FILE = pathlib.Path("progress.txt")
-KEYWORD_HITS_FILE = pathlib.Path("crypto_keyword_hits.xlsx")
-OUTPUT_TABLE = pathlib.Path("crypto_mentions_by_year.xlsx")
-OUTPUT_CHART = pathlib.Path("crypto_mentions_timeline.png")
+PROGRESS_FILE = ROOT_DIR / "progress.txt"
+KEYWORD_HITS_FILE = DATA_DIR / "crypto_keyword_hits.xlsx"
+OUTPUT_TABLE = DATA_DIR / "crypto_mentions_by_year.xlsx"
+OUTPUT_CHART = DATA_DIR / "crypto_mentions_timeline.png"
 
 YEARS = [2020, 2021, 2022, 2023, 2024, 2025]
 

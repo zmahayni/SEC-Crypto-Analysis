@@ -13,8 +13,11 @@ import pandas as pd
 # CONFIG
 # =============================================================================
 
-KEYWORD_HITS_FILE = pathlib.Path("crypto_keyword_hits.xlsx")
-OUTPUT_FILE = pathlib.Path("company_keyword_breakdown.xlsx")
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+
+KEYWORD_HITS_FILE = DATA_DIR / "crypto_keyword_hits.xlsx"
+OUTPUT_FILE = DATA_DIR / "company_keyword_breakdown.xlsx"
 
 
 # =============================================================================

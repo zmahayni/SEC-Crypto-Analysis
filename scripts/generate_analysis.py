@@ -14,10 +14,14 @@ import pandas as pd
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+ROOT_DIR = SCRIPT_DIR.parent
+
 HOME = pathlib.Path.home()
-PROGRESS_FILE = pathlib.Path("progress.txt")
-KEYWORD_HITS_FILE = pathlib.Path("crypto_keyword_hits.xlsx")
-OUTPUT_FILE = pathlib.Path("crypto_analysis.xlsx")
+PROGRESS_FILE = ROOT_DIR / "progress.txt"
+KEYWORD_HITS_FILE = DATA_DIR / "crypto_keyword_hits.xlsx"
+OUTPUT_FILE = DATA_DIR / "crypto_analysis.xlsx"
 CLOUD_FOLDER = (
     HOME
     / "Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k"

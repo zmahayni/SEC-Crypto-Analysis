@@ -16,12 +16,15 @@ from bs4 import BeautifulSoup
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+
 HOME = pathlib.Path.home()
 CLOUD_FOLDER = (
     HOME
     / "Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
 )
-OUTPUT_FILE = pathlib.Path("crypto_snippets_150.xlsx")
+OUTPUT_FILE = DATA_DIR / "crypto_snippets_150.xlsx"
 
 # Same keywords as in scan.py (without tokenization)
 KEYWORDS = re.compile(
@@ -55,7 +58,7 @@ NOISE_PATTERNS = [
 def load_company_names() -> dict:
     """Load CIK to company name mapping from Excel."""
     try:
-        df = pd.read_excel("Publicly_Trade_Companies_SEC.xlsx", engine="openpyxl")
+        df = pd.read_excel(DATA_DIR / "Publicly_Trade_Companies_SEC.xlsx", engine="openpyxl")
 
         # Find the CIK column (try different possible names)
         cik_col = None

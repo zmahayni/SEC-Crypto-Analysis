@@ -14,13 +14,16 @@ from typing import Dict, Set, Tuple
 # CONFIG
 # =============================================================================
 
+SCRIPT_DIR = pathlib.Path(__file__).parent
+DATA_DIR = SCRIPT_DIR.parent / "data"
+
 HOME = pathlib.Path.home()
-INPUT_XLSX = pathlib.Path("Publicly_Trade_Companies_SEC.xlsx")
+INPUT_XLSX = DATA_DIR / "Publicly_Trade_Companies_SEC.xlsx"
 CLOUD_FOLDER = (
     HOME
     / "Library/CloudStorage/OneDrive-UniversityofTulsa/NSF-BSF Precautions - crypto10k"
 )
-OUTPUT_XLSX = pathlib.Path("crypto_keyword_hits.xlsx")
+OUTPUT_XLSX = DATA_DIR / "crypto_keyword_hits.xlsx"
 
 # Same keywords as in scan.py
 KEYWORDS = re.compile(
