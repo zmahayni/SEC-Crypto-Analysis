@@ -21,11 +21,13 @@ Company usage overtime and actual case study for specific companies (Big vs smal
 
 Grounded vs Expert Labeling
 (Crypto as new tech, crypto as investment,  crypto as actual company, crypto risk -> crypto mentioned in the risk factors part of reports):
-    1. Crypto as business
-    2. Crypto as new tech for existing companoes
-    3. Crpyot as investment
-    4. Crypto as risk
-    5. Crypto as competitive risk
+    1. Crypto term as business
+    2. Crypto term as new tech for existing companoes
+    3. Crpyot term as investment
+    4. Crypto term as risk
+    5. Crypto term as competitive risk
+    6. Crypto term related to Employee
+    7. Explicit Non-Use
 
 Look into actual structure of forms
 
